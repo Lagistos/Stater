@@ -1,6 +1,6 @@
 # ngc-stater
 
-This Library help to manage state on the component level In Angular. 
+This Library help to manage state on the component level In Javascript. 
 
 `npm install ngc-stater`
 
