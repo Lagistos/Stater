@@ -64,7 +64,7 @@ export class Portion<C> {
         );
     }
 
-    value(): void {
+    value(): C {
         return this.local.getValue()[this.key];
     }
 
