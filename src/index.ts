@@ -1,7 +1,6 @@
 import { BehaviorSubject, Observable, combineLatest, Subscription, TeardownLogic, isObservable, of } from 'rxjs';
-import { map, shareReplay, distinctUntilChanged } from 'rxjs/operators';
+import { map, shareReplay, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { isEqual } from 'lodash';
-
 
 //
 // ─── SGLOBAL ────────────────────────────────────────────────────────────────────
@@ -26,12 +25,6 @@ export function SGlobal<T>(value: Observablize<T>): Observablize<T> {
 // ─── SLOCAL ─────────────────────────────────────────────────────────────────────
 //
 
-export interface Portion<C> {
-    asObservable: () => Observable<C>,
-    value: () => C,
-    next: (value: C) => void
-}
-
 export class SLocal<T> extends BehaviorSubject<T> {
 
     constructor(initialValue?: Partial<T>) {
@@ -53,21 +46,35 @@ export class SLocal<T> extends BehaviorSubject<T> {
         } else this.next(value)
     }
 
-    portion<K extends keyof T>(key: K) {
-        return {
-            asObservable: () => {
-                return this.pipe(
-                    map(v => v?.[key]),
-                    distinctUntilChanged(isEqual)
-                );
-            },
-            value: () => {
-                return this.getValue()[key];
-            },
-            next: (value: T[K]) => {
-                this.patch({ [key]: value } as Record<K, T[K]> as Partial<T>);
-            }
-        } as Portion<T[K]>
+    portion<K extends keyof T>(key: K): Portion<T[K]> {
+        return new Portion<T[K]>(key, this)
+    }
+}
+
+export class Portion<C> {
+
+    constructor(
+        private key: any,
+        private local: SLocal<any>) { }
+
+    asObservable(): Observable<C> {
+        return this.local.pipe(
+            map(v => v?.[this.key]),
+            distinctUntilChanged(isEqual)
+        );
+    }
+
+    value(): void {
+        return this.local.getValue()[this.key];
+    }
+
+    next(value: C): void {
+        this.local.patch({ [this.key]: value });
+    }
+
+    switch<P>(callback: (v: C) => Observable<P>) {
+        return this.asObservable()
+            .pipe(switchMap(v => callback(v)))
     }
 }
 
@@ -94,7 +101,6 @@ export function SCombined<G, L>(
 }
 
 function combineLatestObject<T>(object: Observablize<T>): Observable<T> {
-
     function ObservablizeObjectToArray(obj: Observablize<any>): Observable<any>[] {
         return Object.keys(obj)
             .map((key: string) => {

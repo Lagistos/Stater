@@ -1,6 +1,6 @@
 # ngc-stater
 
-This Library help to manage state on the component level In Angular. 
+This Library help to manage state on the component level In Javascript. 
 
 `npm install ngc-stater`
 
@@ -144,8 +144,7 @@ const glob$ = SGlobal<ISGlobal>({
         name: 'Generic roman',
         pages: 500
     }]),
-    actionBooks: prName.asObservable()
-        .pipe(switchMap(v => getBooksFromServer(v)))
+    actionBooks: prName.switch(v => getBooksFromServer(v))
 });
 
 function getBooksFromServer(name: string): Observable<Book[]> {
